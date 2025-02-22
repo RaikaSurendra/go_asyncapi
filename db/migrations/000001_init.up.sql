@@ -1,0 +1,31 @@
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  hashed_password VARCHAR(255) NOT NULL, -- bcrypt hashed password
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+CREATE TABLE refresh_tokens (
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  hashed_token VARCHAR(500) NOT NULL UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP + INTERVAL '1 day',
+  PRIMARY KEY (user_id, hashed_token)
+);
+
+CREATE TABLE reports (
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  report_type VARCHAR(255) NOT NULL,
+  output_file_path VARCHAR(255) NOT NULL,
+  download_url VARCHAR(255) NOT NULL,
+  download_url_expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  error_message TEXT,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  started_at TIMESTAMP WITH TIME ZONE,
+  failed_at TIMESTAMP WITH TIME ZONE,
+  completed_at TIMESTAMP WITH TIME ZONE,
+  PRIMARY KEY (user_id, id)
+);
