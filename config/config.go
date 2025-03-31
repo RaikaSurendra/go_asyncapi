@@ -8,18 +8,34 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type Env string
+
+const (
+	Env_Test Env = "test"
+	Env_Dev  Env = "dev"
+	Env_Prod Env = "prod"
+)
+
 type Config struct {
 	DatabaseName     string `env:"DB_NAME"`
 	DatabaseUser     string `env:"DB_USER"`
 	DatabasePassword string `env:"DB_PASSWORD"`
 	DatabaseHost     string `env:"DB_HOST"`
 	DatabasePort     string `env:"DB_PORT"`
+	DatabasePortTest string `env:"DB_PORT_TEST"`
 	DatabaseSSLMode  string `env:"DB_SSL_MODE"`
+	Env              Env    `env:"ENV" envDefault:"dev"`
+	ProjectRoot      string `env:"PROJECT_ROOT"`
 }
 
 func (c *Config) DatabaseUrl() string {
+	port := c.DatabasePort
+	if c.Env == Env_Test {
+		port = c.DatabasePortTest
+	}
+
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		c.DatabaseUser, c.DatabasePassword, c.DatabaseHost, c.DatabasePort, c.DatabaseName, c.DatabaseSSLMode)
+		c.DatabaseUser, c.DatabasePassword, c.DatabaseHost, port, c.DatabaseName, c.DatabaseSSLMode)
 }
 
 func New() (*Config, error) {
@@ -30,7 +46,9 @@ func New() (*Config, error) {
 		    DB_PASSWORD=secret
 		    DB_HOST=127.0.0.1
 		    DB_PORT=5432
+			DB_PORT_TEST=5433
 		    DB_SSL_MODE=disable
+			PROJECT_ROOT=${PWD}
 		    `), 0644)
 
 	// set os environment variables from .envrc
