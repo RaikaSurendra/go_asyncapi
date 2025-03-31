@@ -28,6 +28,7 @@ type Config struct {
 	DatabaseSSLMode  string `env:"DB_SSL_MODE"`
 	Env              Env    `env:"ENV" envDefault:"dev"`
 	ProjectRoot      string `env:"PROJECT_ROOT" envDefault:"/Users/surendraraika/projects/asyncapi"`
+	JwtSecret        string `env:"JWT_SECRET"`
 }
 
 func (c *Config) DatabaseUrl() string {
@@ -48,6 +49,7 @@ func New() (*Config, error) {
 	}
 
 	os.WriteFile(".env", fmt.Appendf(nil, `
+			JWT_SECRET=supersecret
 			APISERVER_PORT=5001
 			APISERVER_HOST=localhost
 			DB_NAME=asyncapi
