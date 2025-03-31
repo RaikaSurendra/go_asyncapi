@@ -73,7 +73,7 @@ func (s *UserStore) CreateUser(ctx context.Context, email, password string) (*Us
 
 func (s *UserStore) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	// Query the user by email
-	const query = `SELECT * FROM users WHERE email = $1`
+	const query = `SELECT id, email, hashed_password AS hashed_password, created_at FROM users WHERE email = $1`
 	var user User
 	if err := s.db.GetContext(ctx, &user, query, email); err != nil {
 		if err == sql.ErrNoRows {
