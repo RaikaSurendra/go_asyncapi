@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"testing"
 	"strings"
+	"testing"
 
 	"github.com/RaikaSurendra/go_asyncapi/config"
 	"github.com/RaikaSurendra/go_asyncapi/store"
@@ -46,19 +46,21 @@ func NewTestEnv(t *testing.T) *TestEnv {
 		Config: conf}
 }
 
-func (te *TestEnv) SetupDb(t *testing.T) {
+func (te *TestEnv) SetupDb(t *testing.T) func(t *testing.T) {
 	// Ensure the database is cleaned up after tests
 	m, err := migrate.New(
-		fmt.Sprintf("file:///%s/migrations", os.Getenv("PROJECT_ROOT")),
+		fmt.Sprintf("file:///%s/migrations", te.Config.ProjectRoot),
 		te.Config.DatabaseUrl(),
 	)
 	require.NoError(t, err)
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		require.NoError(t, err)
 	}
+	return te.TeardownDb
+}
 
 func (te *TestEnv) TeardownDb(t *testing.T) {
-	_, err := te.Db.Exec("TRUNCATE TABLE %s CASCADE", strings.Join([]string{"users", "refresh_tokens", "reports"}, ","))
+	_, err := te.Db.Exec(fmt.Sprintf("TRUNCATE TABLE %s CASCADE", strings.Join([]string{"users", "refresh_tokens", "reports"}, ",")))
 	require.NoError(t, err)
 	// Close the database connection
 	if err := te.Db.Close(); err != nil {
