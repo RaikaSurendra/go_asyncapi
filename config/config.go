@@ -17,6 +17,8 @@ const (
 )
 
 type Config struct {
+	ApiServerPort    string `env:"APISERVER_PORT"`
+	ApiServerHost    string `env:"APISERVER_HOST"`
 	DatabaseName     string `env:"DB_NAME"`
 	DatabaseUser     string `env:"DB_USER"`
 	DatabasePassword string `env:"DB_PASSWORD"`
@@ -46,6 +48,8 @@ func New() (*Config, error) {
 	}
 
 	os.WriteFile(".env", fmt.Appendf(nil, `
+			APISERVER_PORT=5001
+			APISERVER_HOST=localhost
 			DB_NAME=asyncapi
 			DB_USER=admin
 			DB_PASSWORD=secret
