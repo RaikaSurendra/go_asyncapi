@@ -25,7 +25,7 @@ type Config struct {
 	DatabasePortTest string `env:"DB_PORT_TEST"`
 	DatabaseSSLMode  string `env:"DB_SSL_MODE"`
 	Env              Env    `env:"ENV" envDefault:"dev"`
-	ProjectRoot      string `env:"PROJECT_ROOT"`
+	ProjectRoot      string `env:"PROJECT_ROOT" envDefault:"/Users/surendraraika/projects/asyncapi"`
 }
 
 func (c *Config) DatabaseUrl() string {
@@ -40,16 +40,21 @@ func (c *Config) DatabaseUrl() string {
 
 func New() (*Config, error) {
 
-	os.WriteFile(".env", []byte(`
-		    DB_NAME=asyncapi
-		    DB_USER=admin
-		    DB_PASSWORD=secret
-		    DB_HOST=127.0.0.1
-		    DB_PORT=5432
+	wd := "/Users/surendraraika/projects/asyncapi"
+	if wd == "" {
+		return nil, fmt.Errorf("failed to get working directory: PROJECT_HOME is not set")
+	}
+
+	os.WriteFile(".env", fmt.Appendf(nil, `
+			DB_NAME=asyncapi
+			DB_USER=admin
+			DB_PASSWORD=secret
+			DB_HOST=127.0.0.1
+			DB_PORT=5432
 			DB_PORT_TEST=5433
-		    DB_SSL_MODE=disable
-			PROJECT_ROOT=${PWD}
-		    `), 0644)
+			DB_SSL_MODE=disable
+			PROJECT_ROOT=%s
+			`, wd), 0644)
 
 	// set os environment variables from .envrc
 	if _, err := os.Stat(".env"); err == nil {

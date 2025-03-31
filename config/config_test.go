@@ -37,6 +37,7 @@ func TestDatabaseUrl(t *testing.T) {
 		DatabasePort:     "5432",
 		DatabasePortTest: "5433",
 		DatabaseSSLMode:  "disable",
+		ProjectRoot:      "/Users/surendraraika/projects/asyncapi",
 	}
 
 	// Test for development environment
