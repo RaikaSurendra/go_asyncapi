@@ -12,6 +12,7 @@ func NewLoggerMiddleware(logger *slog.Logger) func(next http.Handler) http.Handl
 				slog.String("method", r.Method),
 				slog.String("path", r.URL.Path),
 				slog.String("remote_addr", r.RemoteAddr),
+				slog.String("Actual Port", r.RequestURI),
 			)
 			next.ServeHTTP(w, r)
 			logger.Info("Response sent",
