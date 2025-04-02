@@ -1,4 +1,5 @@
-module github.com/RaikaSurendra/go_asyncapi
+//module github.com/RaikaSurendra/go_asyncapi
+module asyncapi
 
 go 1.23.4
 

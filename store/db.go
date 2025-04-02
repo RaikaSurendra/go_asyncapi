@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/RaikaSurendra/go_asyncapi/config"
+	"asyncapi/config"
+
 	_ "github.com/lib/pq" // PostgreSQL driver
 	// Import the PostgreSQL driver
 	// to register it with the database/sql package

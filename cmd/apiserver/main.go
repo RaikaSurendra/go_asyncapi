@@ -7,9 +7,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/RaikaSurendra/go_asyncapi/apiserver"
-	"github.com/RaikaSurendra/go_asyncapi/config"
-	"github.com/RaikaSurendra/go_asyncapi/store"
+	"asyncapi/apiserver"
+	"asyncapi/config"
+	"asyncapi/store"
 )
 
 func main() {
