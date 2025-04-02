@@ -5,6 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 type SigninRequest struct {
@@ -41,7 +44,7 @@ func (s *ApiServer) signupHandler() http.HandlerFunc {
 
 		req, err := decode[SignupRequest](r)
 		if err != nil {
-			return NewErrWithStatus(http.StatusBadRequest, err)
+			return NewErrWithStatus(http.StatusBadRequest, fmt.Errorf("failed to decode signup request: %w", err))
 		}
 		existingUser, err := s.store.Users.GetUserByEmail(r.Context(), req.Email)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -122,5 +125,86 @@ func (s *ApiServer) signinHandler() http.HandlerFunc {
 
 		return nil
 
+	})
+}
+
+type TokenRefreshRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
+type TokenRefreshResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+func (r TokenRefreshRequest) Validate() error {
+	if r.RefreshToken == "" {
+		return errors.New("refresh token is required")
+	}
+	return nil
+}
+
+func (s *ApiServer) tokenRefreshHandler() http.HandlerFunc {
+	return handler(func(w http.ResponseWriter, r *http.Request) error {
+
+		req, err := decode[TokenRefreshRequest](r)
+		if err != nil {
+			return NewErrWithStatus(http.StatusBadRequest, fmt.Errorf("error decoding request body: %w", err))
+		}
+
+		// Parse the token
+		currentRefreshToken, err := s.jwtManager.Parse(req.RefreshToken)
+		if err != nil {
+			return NewErrWithStatus(http.StatusUnauthorized, fmt.Errorf("invalid refresh token: %w", err))
+		}
+
+		userIdStr, err := currentRefreshToken.Claims.GetSubject()
+		if err != nil {
+			return NewErrWithStatus(http.StatusUnauthorized, fmt.Errorf("failed to get subject from token: %w", err))
+		}
+
+		userId, err := uuid.Parse(userIdStr)
+		if err != nil {
+			return NewErrWithStatus(http.StatusUnauthorized, fmt.Errorf("invalid user ID in token: %w", err))
+		}
+
+		currentRefreshTokenRecord, err := s.store.RefreshTokenStore.ByPrimaryKey(r.Context(), userId, currentRefreshToken)
+		if err != nil {
+			status := http.StatusInternalServerError
+			if errors.Is(err, sql.ErrNoRows) {
+				status = http.StatusUnauthorized
+			}
+			return NewErrWithStatus(status, fmt.Errorf("failed to fetch refresh token record: %w", err))
+		}
+
+		// Verify the current refresh token is not expired
+		if currentRefreshTokenRecord.ExpiresAt.Before(time.Now()) {
+			return NewErrWithStatus(http.StatusUnauthorized, errors.New("refresh token expired"))
+		}
+
+		// Generate a new token pair, delete old tokens, and persist the new ones
+		tokenPair, err := s.jwtManager.GenerateTokenPair(userId)
+		if err != nil {
+			return NewErrWithStatus(http.StatusInternalServerError, fmt.Errorf("failed to generate token pair: %w", err))
+		}
+
+		if _, err := s.store.RefreshTokenStore.DeleteUserTokens(r.Context(), userId); err != nil {
+			return NewErrWithStatus(http.StatusInternalServerError, fmt.Errorf("failed to delete old tokens: %w", err))
+		}
+
+		if _, err := s.store.RefreshTokenStore.Create(r.Context(), userId, tokenPair.RefreshToken); err != nil {
+			return NewErrWithStatus(http.StatusInternalServerError, fmt.Errorf("failed to persist new refresh token: %w", err))
+		}
+
+		if err := encode(ApiResponse[TokenRefreshResponse]{
+			Data: &TokenRefreshResponse{
+				AccessToken:  tokenPair.AccessToken.Raw,
+				RefreshToken: tokenPair.RefreshToken.Raw,
+			},
+		}, http.StatusOK, w); err != nil {
+			return NewErrWithStatus(http.StatusInternalServerError, fmt.Errorf("failed to encode response: %w", err))
+		}
+
+		return nil
 	})
 }
