@@ -7,8 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RaikaSurendra/go_asyncapi/config"
-	"github.com/RaikaSurendra/go_asyncapi/store"
+	"asyncapi/config"
+	"asyncapi/store"
+
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/require"

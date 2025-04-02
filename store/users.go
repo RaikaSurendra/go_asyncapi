@@ -100,7 +100,7 @@ func (s *UserStore) GetUserByEmail(ctx context.Context, email string) (*User, er
 // It uses the time package to handle timestamps and the uuid package to generate and handle UUIDs.
 func (s *UserStore) GetUserByID(ctx context.Context, id uuid.UUID) (*User, error) {
 	// Query the user by ID
-	const query = `SELECT * FROM users WHERE id = $1`
+	const query = `SELECT id, email, hashed_password AS hashed_password, created_at FROM users WHERE id = $1;`
 	var user User
 	if err := s.db.GetContext(ctx, &user, query, id); err != nil {
 		if err == sql.ErrNoRows {

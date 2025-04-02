@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/RaikaSurendra/go_asyncapi/store"
+	"asyncapi/store"
 
-	"github.com/RaikaSurendra/go_asyncapi/config"
+	"asyncapi/config"
 )
 
 type ApiServer struct {
@@ -66,6 +66,7 @@ func (s *ApiServer) Start(ctx context.Context) error {
 	mux.HandleFunc("POST /auth/signin", s.signinHandler())
 
 	middleware := NewLoggerMiddleware(s.logger)
+	middleware = NewAuthMiddleware(s.jwtManager, s.store.Users)
 	srv := &http.Server{
 		Addr:    net.JoinHostPort(s.config.ApiServerHost, s.config.ApiServerPort),
 		Handler: middleware(mux)}

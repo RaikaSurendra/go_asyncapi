@@ -3,11 +3,12 @@ package apiserver_test
 import (
 	"testing"
 
-	"github.com/RaikaSurendra/go_asyncapi/config"
+	"asyncapi/config"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/RaikaSurendra/go_asyncapi/apiserver" // Import the correct package for apiServer
+	"asyncapi/apiserver" // Import the correct package for apiServer
 )
 
 func TestJwtManager_GenerateTokenPair(t *testing.T) {

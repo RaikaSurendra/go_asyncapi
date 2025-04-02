@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/RaikaSurendra/go_asyncapi/apiserver"
-	"github.com/RaikaSurendra/go_asyncapi/fixtures"
-	"github.com/RaikaSurendra/go_asyncapi/store"
+	"asyncapi/apiserver"
+	"asyncapi/fixtures"
+	"asyncapi/store"
+
 	"github.com/stretchr/testify/require"
 )
 
