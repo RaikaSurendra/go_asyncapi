@@ -21,15 +21,18 @@ type ApiServer struct {
 	logger *slog.Logger
 	//store generic struct
 	store *store.Store
+	//jwt manager
+	jwtManager *JwtManager
 }
 
-func New(conf *config.Config, logger *slog.Logger, store *store.Store) *ApiServer {
+func New(conf *config.Config, logger *slog.Logger, store *store.Store, jwtManager *JwtManager) *ApiServer {
 	// Create a new instance of ApiServer with the provided configuration
 	// and logger
 	return &ApiServer{
-		config: conf,
-		logger: logger,
-		store:  store,
+		config:     conf,
+		logger:     logger,
+		store:      store,
+		jwtManager: jwtManager,
 	}
 }
 
@@ -60,6 +63,7 @@ func (s *ApiServer) Start(ctx context.Context) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /ping", s.ping)
 	mux.HandleFunc("POST /auth/signup", s.signupHandler())
+	mux.HandleFunc("POST /auth/signin", s.signinHandler())
 
 	middleware := NewLoggerMiddleware(s.logger)
 	srv := &http.Server{

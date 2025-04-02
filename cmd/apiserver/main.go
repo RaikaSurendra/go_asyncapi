@@ -33,8 +33,9 @@ func run() error {
 		return nil
 	}
 	dataStore := store.New(db)
+	jwtManager := apiserver.NewJwtManager(cfg)
 	// Create a new API server instance
-	apiServer := apiserver.New(cfg, logger, dataStore)
+	apiServer := apiserver.New(cfg, logger, dataStore, jwtManager)
 	// Set Context to signal Notify Context
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
