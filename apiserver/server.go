@@ -65,12 +65,20 @@ func (s *ApiServer) Start(ctx context.Context) error {
 	mux.HandleFunc("POST /auth/signup", s.signupHandler())
 	mux.HandleFunc("POST /auth/signin", s.signinHandler())
 	mux.HandleFunc("POST /auth/refresh", s.tokenRefreshHandler())
-	middleware := NewLoggerMiddleware(s.logger)
-	middleware = NewAuthMiddleware(s.jwtManager, s.store.Users)
+	//middleware := NewLoggerMiddleware(s.logger)
+	//middleware = NewAuthMiddleware(s.jwtManager, s.store.Users)
+
+	handler := NewLoggerMiddleware(s.logger)(NewAuthMiddleware(s.jwtManager, s.store.Users)(mux))
 	srv := &http.Server{
 		Addr:    net.JoinHostPort(s.config.ApiServerHost, s.config.ApiServerPort),
-		Handler: middleware(mux)}
+		Handler: handler,
+	}
 
+	/*
+		srv := &http.Server{
+			Addr:    net.JoinHostPort(s.config.ApiServerHost, s.config.ApiServerPort),
+			Handler: middleware(mux)}
+	*/
 	// Start the server in a goroutine and return the server.ListebnAndServe() error
 	go func() {
 		// Log server start message with the port
