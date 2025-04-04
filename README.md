@@ -7,7 +7,7 @@
 ## Overview
 
 The AsyncAPI project is a Go-based API framework for building scalable and efficient APIs.
-Followed AsyncAPI project created by devtools https://www.youtube.com/watch?v=jjcIY_gNdAY&list=PLlRRjbUiNHm3fcvjiSnAa4n3zqmKF4wCl
+Followed AsyncAPI project created by devtool https://www.youtube.com/watch?v=jjcIY_gNdAY&list=PLlRRjbUiNHm3fcvjiSnAa4n3zqmKF4wCl
 
 ## Technical Overview
 
