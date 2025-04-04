@@ -11,6 +11,12 @@ import (
 	"asyncapi/apiserver" // Import the correct package for apiServer
 )
 
+// TestJwtManager_GenerateTokenPair verifies the correctness of the generated token pair
+//   - Verifies that the subject of the access token is the same as the given userId
+//   - Verifies that the issuer of the access token is the same as the ApiServerHost and ApiServerPort
+//   - Verifies that the subject of the refresh token is the same as the given userId
+//   - Verifies that the issuer of the refresh token is the same as the ApiServerHost and ApiServerPort
+//   - Verifies that the parsed token is the same as the original token
 func TestJwtManager_GenerateTokenPair(t *testing.T) {
 	// Mock configuration
 	mockConfig, err := config.New()

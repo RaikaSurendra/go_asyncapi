@@ -18,11 +18,22 @@ import (
 	"asyncapi/store"
 )
 
+// main runs the API server.
+//
+// It loads the configuration, sets up the logger, sets up the store, sets up
+// the AWS clients, and starts the server.
+//
+// If any of these steps fail, it panics with the error.
 func main() {
 	if err := run(); err != nil {
 		panic(err)
 	}
 }
+
+// run sets up and starts the API server. It loads the configuration, initializes
+// the logger, sets up database connections, creates AWS S3 and SQS clients, and
+// initializes the API server with these components. It handles system interrupts
+// to gracefully shut down the server. If any step fails, it returns an error.
 
 func run() error {
 	// Load the configuration
