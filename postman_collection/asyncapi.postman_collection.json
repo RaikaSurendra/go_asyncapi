@@ -13,7 +13,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\"email\":\"test@testing.com\",\n\"password\":\"secret\"}",
+					"raw": "{\"email\":\"test7@testing.com\",\n\"password\":\"secret\"}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -48,7 +48,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"refresh_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6NTAwMSIsInN1YiI6IjAxNzY1ZjI4LWJmMDAtNDliMi04NzI1LTQ4YTY1OTgyNzkxZCIsImV4cCI6MTc0NjIxMDkzOCwiaWF0IjoxNzQzNjE4OTM4fQ.WTff40xWVTDsCqdwKGyv9Om-qqHcQj8ajdWQgLri3Io\"\n}",
+					"raw": "{\n    \"refresh_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6NTAwMSIsInN1YiI6IjUxM2EwMDM1LTEyNTgtNDY3MC1hY2VhLWQzYmFkZmY5ZTc1MCIsImV4cCI6MTc0NjI3MTAwOCwiaWF0IjoxNzQzNjc5MDA4fQ.Vbyiwm8-VwwxrnAv6UDqGZA4Yg64a18e19qm0deoe7k\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -65,10 +65,159 @@
 						"1"
 					],
 					"port": "5001",
-					
 					"path": [
 						"auth",
 						"refresh"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "signup",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\":\"attrio2services.com\",\"password\":\"mykey\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:5001/auth/signup",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5001",
+					"path": [
+						"auth",
+						"signup"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "pingpong",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo1MDAxIiwic3ViIjoiNTEzYTAwMzUtMTI1OC00NjcwLWFjZWEtZDNiYWRmZjllNzUwIiwiZXhwIjoxNzQzNjc5NzY5LCJpYXQiOjE3NDM2Nzg4Njl9.Yst2hWIjN-3XZ7FzwabUEEWkaiKw7Kya5mv6GlFEDRA",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"refresh_token\":\"hbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6NTAwMSIsInN1YiI6IjUxM2EwMDM1LTEyNTgtNDY3MC1hY2VhLWQzYmFkZmY5ZTc1MCIsImV4cCI6MTc0NjI3MDgyMSwiaWF0IjoxNzQzNjc4ODIxfQ.yaug3arFng5Yhnepw5zF0lPc2nhC364tCJlOL2Sbeok\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:5001/ping",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5001",
+					"path": [
+						"ping"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "reports_create",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"report_type\":\"monsters\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:5001/reports?Authorization=Bearer ",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5001",
+					"path": [
+						"reports"
+					],
+					"query": [
+						{
+							"key": "Authorization",
+							"value": "Bearer "
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "reports_get",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo1MDAxIiwic3ViIjoiNTEzYTAwMzUtMTI1OC00NjcwLWFjZWEtZDNiYWRmZjllNzUwIiwiZXhwIjoxNzQzNzI2MzA1LCJpYXQiOjE3NDM3MjU0MDV9.KgtdRHy9g2vcAXi11x_YBbKR28RWfkjdg2domSMcovQ",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:5001/reports/47d16f79-dfbc-46ee-aa7d-111d8ab13e86",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5001",
+					"path": [
+						"reports",
+						"47d16f79-dfbc-46ee-aa7d-111d8ab13e86"
 					]
 				}
 			},
