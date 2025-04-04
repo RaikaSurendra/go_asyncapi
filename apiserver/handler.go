@@ -35,6 +35,10 @@ type ApiResponse[T any] struct {
 	Message string `json:"message,omitempty"`
 }
 
+// Validate checks the SignupRequest fields for required values.
+// It returns an error if the Email or Password fields are empty,
+// indicating that both fields are mandatory for a valid signup request.
+
 func (r SignupRequest) Validate() error {
 	if r.Email == "" {
 		return errors.New("email is required")
@@ -45,7 +49,16 @@ func (r SignupRequest) Validate() error {
 	return nil
 }
 
+// signupHandler handles user signup requests. It decodes the incoming request
+// into a SignupRequest, checks for existing users with the same email, and
+
+// creates a new user if none exists. If the email is already taken, it returns
+// a conflict error. Upon successful creation, it sends a success response with
+// HTTP status 201. In case of any errors during decoding, user lookup, or
+// creation, appropriate error responses with corresponding HTTP status codes
+// are returned.
 func (s *ApiServer) signupHandler() http.HandlerFunc {
+
 	return handler(func(w http.ResponseWriter, r *http.Request) error {
 
 		req, err := decode[SignupRequest](r)
@@ -150,6 +163,10 @@ func (r TokenRefreshRequest) Validate() error {
 	return nil
 }
 
+// Validate checks the CreateReportRequest fields for required values.
+// It returns an error if the ReportType field is empty, indicating
+// that this field is mandatory for a valid report creation request.
+
 func (r CreateReportRequest) Validate() error {
 	if r.ReportType == "" {
 		return errors.New("report_type is required")
@@ -240,6 +257,20 @@ type ApiReport struct {
 	Status               string     `json:"status,omitempty"`
 }
 
+// createReportHandler is the HTTP handler to create a new report.
+//
+// Parameters:
+// - req: The request containing the report type.
+// - w: The response writer to write the response to.
+// - r: The request object.
+//
+// Returns:
+// - An error if the operation fails.
+//
+// This function will first decode the request to a CreateReportRequest struct.
+// It will then create a new report with the given report type in the database.
+// After that, it will send an SQS message to the report generation queue.
+// Finally, it will return the created report as a JSON response with a 201 status code.
 func (s *ApiServer) createReportHandler() http.HandlerFunc {
 	return handler(func(w http.ResponseWriter, r *http.Request) error {
 		req, err := decode[CreateReportRequest](r)
@@ -296,6 +327,20 @@ func (s *ApiServer) createReportHandler() http.HandlerFunc {
 	})
 }
 
+// getReportHandler is the HTTP handler to retrieve a report.
+//
+// Parameters:
+// - w: The response writer to write the response to.
+// - r: The request object.
+//
+// Returns:
+// - An error if the operation fails.
+//
+// This function will first decode the request to a report ID.
+// It will then retrieve the report with the given ID in the database.
+// After that, it will check if the report generation is completed and if the download URL is expired.
+// If the report is completed and the download URL is expired, it will generate a new signed URL and update the report in the database.
+// Finally, it will return the report as a JSON response with a 200 status code.
 func (s *ApiServer) getReportHandler() http.HandlerFunc {
 	return handler(func(w http.ResponseWriter, r *http.Request) error {
 		reportIdStr := r.PathValue("id")
