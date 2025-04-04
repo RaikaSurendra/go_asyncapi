@@ -9,6 +9,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
+
 	"asyncapi/store"
 
 	"asyncapi/config"
@@ -23,16 +26,22 @@ type ApiServer struct {
 	store *store.Store
 	//jwt manager
 	jwtManager *JwtManager
+	//sqs dependency
+	sqsClient *sqs.Client
+
+	presignClient *s3.PresignClient
 }
 
-func New(conf *config.Config, logger *slog.Logger, store *store.Store, jwtManager *JwtManager) *ApiServer {
+func New(conf *config.Config, logger *slog.Logger, store *store.Store, jwtManager *JwtManager, sqsClient *sqs.Client, presignClient *s3.PresignClient) *ApiServer {
 	// Create a new instance of ApiServer with the provided configuration
 	// and logger
 	return &ApiServer{
-		config:     conf,
-		logger:     logger,
-		store:      store,
-		jwtManager: jwtManager,
+		config:        conf,
+		logger:        logger,
+		store:         store,
+		jwtManager:    jwtManager,
+		sqsClient:     sqsClient,
+		presignClient: presignClient,
 	}
 }
 
@@ -65,6 +74,8 @@ func (s *ApiServer) Start(ctx context.Context) error {
 	mux.HandleFunc("POST /auth/signup", s.signupHandler())
 	mux.HandleFunc("POST /auth/signin", s.signinHandler())
 	mux.HandleFunc("POST /auth/refresh", s.tokenRefreshHandler())
+	mux.HandleFunc("POST /reports", s.createReportHandler())
+	mux.HandleFunc("GET /reports/{id}", s.getReportHandler())
 	//middleware := NewLoggerMiddleware(s.logger)
 	//middleware = NewAuthMiddleware(s.jwtManager, s.store.Users)
 

@@ -7,6 +7,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
+
+	"asyncapi/reports"
+
 	"github.com/google/uuid"
 )
 
@@ -144,6 +150,13 @@ func (r TokenRefreshRequest) Validate() error {
 	return nil
 }
 
+func (r CreateReportRequest) Validate() error {
+	if r.ReportType == "" {
+		return errors.New("report_type is required")
+	}
+	return nil
+}
+
 func (s *ApiServer) tokenRefreshHandler() http.HandlerFunc {
 	return handler(func(w http.ResponseWriter, r *http.Request) error {
 
@@ -203,6 +216,148 @@ func (s *ApiServer) tokenRefreshHandler() http.HandlerFunc {
 			},
 		}, http.StatusOK, w); err != nil {
 			return NewErrWithStatus(http.StatusInternalServerError, fmt.Errorf("failed to encode response: %w", err))
+		}
+
+		return nil
+	})
+}
+
+type CreateReportRequest struct {
+	ReportType string `json:"report_type"`
+}
+type ApiReport struct {
+	// The ID of the user who owns the report.
+	Id                   uuid.UUID  `json:"id"`                                // The unique ID of the report.
+	ReportType           string     `json:"report_type,omitempty"`             // The type of the report (e.g., "summary", "detailed").
+	OutputFilePath       *string    `json:"output_file_path,omitempty"`        // The file path where the report is stored.
+	DownloadUrl          *string    `json:"download_url,omitempty"`            // The URL to download the report.
+	DownloadUrlExpiresAt *time.Time `json:"download_url_expires_at,omitempty"` // The expiration time of the download URL.
+	ErrorMessage         *string    `json:"error_message,omitempty"`           // Any error message associated with the report generation.
+	CreatedAt            time.Time  `json:"created_at,omitempty"`              // The timestamp when the report was created.
+	StartedAt            *time.Time `json:"started_at,omitempty"`              // The timestamp when the report generation started.
+	CompletedAt          *time.Time `json:"completed_at,omitempty"`            // The timestamp when the report generation completed.
+	FailedAt             *time.Time `json:"failed_at,omitempty"`
+	Status               string     `json:"status,omitempty"`
+}
+
+func (s *ApiServer) createReportHandler() http.HandlerFunc {
+	return handler(func(w http.ResponseWriter, r *http.Request) error {
+		req, err := decode[CreateReportRequest](r)
+		if err != nil {
+			return NewErrWithStatus(http.StatusBadRequest, err)
+		}
+		user, ok := UserFromContext(r.Context())
+		if !ok {
+			return NewErrWithStatus(http.StatusUnauthorized, fmt.Errorf("user not found in context"))
+		}
+		report, err := s.store.ReportStore.Create(r.Context(), user.Id, req.ReportType)
+		if err != nil {
+			return NewErrWithStatus(http.StatusInternalServerError, err)
+		}
+		//send sqs message for report generation
+		//send as json
+		sqsMessage := reports.SqsMessage{
+			UserId:   report.UserId,
+			ReportId: report.Id,
+		}
+		//get sqs queue url
+		queueUrlOutput, err := s.sqsClient.GetQueueUrl(r.Context(), &sqs.GetQueueUrlInput{
+			QueueName: aws.String(s.config.SqsQueue),
+		})
+		if err != nil {
+			return NewErrWithStatus(http.StatusInternalServerError, err)
+		}
+		_, err = s.sqsClient.SendMessage(r.Context(), &sqs.SendMessageInput{
+			QueueUrl:    queueUrlOutput.QueueUrl, // Replace with your SQS queue URL
+			MessageBody: aws.String(fmt.Sprintf(`{"user_id":"%s","report_id":"%s"}`, sqsMessage.UserId, sqsMessage.ReportId)),
+		})
+		if err != nil {
+			return NewErrWithStatus(http.StatusInternalServerError, fmt.Errorf("failed to send SQS message: %w", err))
+		}
+		if err := encode(ApiResponse[ApiReport]{
+			Data: &ApiReport{
+				Id:                   report.Id,
+				ReportType:           report.ReportType,
+				OutputFilePath:       report.OutputFilePath,
+				DownloadUrl:          report.DownloadUrl,
+				DownloadUrlExpiresAt: report.DownloadUrlExpiresAt,
+				ErrorMessage:         report.ErrorMessage,
+				CreatedAt:            report.CreatedAt,
+				StartedAt:            report.StartedAt,
+				CompletedAt:          report.CompletedAt,
+				FailedAt:             report.FailedAt,
+				Status:               report.Status(),
+			},
+		}, int(http.StatusCreated), w); err != nil {
+			return NewErrWithStatus(http.StatusInternalServerError, err)
+		}
+
+		return nil
+	})
+}
+
+func (s *ApiServer) getReportHandler() http.HandlerFunc {
+	return handler(func(w http.ResponseWriter, r *http.Request) error {
+		reportIdStr := r.PathValue("id")
+		reportId, err := uuid.Parse(reportIdStr)
+		if err != nil {
+			return NewErrWithStatus(http.StatusBadRequest, err)
+		}
+
+		user, ok := UserFromContext(r.Context())
+		if !ok {
+			return NewErrWithStatus(http.StatusUnauthorized, fmt.Errorf("user not found in context"))
+		}
+
+		report, err := s.store.ReportStore.GetByPrimaryKey(r.Context(), user.Id, reportId)
+		if err != nil {
+			status := http.StatusInternalServerError
+			if errors.Is(err, sql.ErrNoRows) {
+				status = http.StatusNotFound
+			}
+			return NewErrWithStatus(status, err)
+		}
+		//hasExpiration := report.DownloadUrlExpiresAt != nil && report.DownloadUrlExpiresAt.Before(time.Now())
+		if report.CompletedAt != nil {
+			needsRefesh := report.DownloadUrlExpiresAt != nil && report.DownloadUrlExpiresAt.Before(time.Now())
+			if report.DownloadUrl == nil || needsRefesh {
+				expiresAt := time.Now().Add(time.Second * 40)
+				signedUrl, err := s.presignClient.PresignGetObject(r.Context(), &s3.GetObjectInput{
+					Bucket: aws.String(s.config.S3Bucket),
+					Key:    report.OutputFilePath,
+				}, func(options *s3.PresignOptions) {
+					options.Expires = time.Second * 40
+				})
+				if err != nil {
+					return NewErrWithStatus(http.StatusInternalServerError, err)
+				}
+				//update the report
+				report.DownloadUrl = aws.String(signedUrl.URL)
+				report.DownloadUrlExpiresAt = &expiresAt
+				//update the report in db
+
+				report, err = s.store.ReportStore.Update(r.Context(), report)
+				if err != nil {
+					return NewErrWithStatus(http.StatusInternalServerError, err)
+				}
+			}
+		}
+		if err := encode(ApiResponse[ApiReport]{
+			Data: &ApiReport{
+				Id:                   report.Id,
+				ReportType:           report.ReportType,
+				OutputFilePath:       report.OutputFilePath,
+				DownloadUrl:          report.DownloadUrl,
+				DownloadUrlExpiresAt: report.DownloadUrlExpiresAt,
+				ErrorMessage:         report.ErrorMessage,
+				CreatedAt:            report.CreatedAt,
+				StartedAt:            report.StartedAt,
+				CompletedAt:          report.CompletedAt,
+				FailedAt:             report.FailedAt,
+				Status:               report.Status(),
+			},
+		}, http.StatusOK, w); err != nil {
+			return NewErrWithStatus(http.StatusInternalServerError, err)
 		}
 
 		return nil
