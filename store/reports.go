@@ -47,8 +47,25 @@ type Report struct {
 	CreatedAt            time.Time  `db:"created_at"`              // The timestamp when the report was created.
 	StartedAt            *time.Time `db:"started_at"`              // The timestamp when the report generation started.
 	CompletedAt          *time.Time `db:"completed_at"`            // The timestamp when the report generation completed.
-	FailedAt             *time.Time `db:"failed_at"`               // The timestamp when the report generation failed.
-	UpdatedAt            *time.Time `db:"updated_at"`              // The timestamp when the report was last updated.
+	FailedAt             *time.Time `db:"failed_at"`               // The timestamp when the report generation failed.           // The timestamp when the report was last updated.
+}
+
+func (r *Report) IsReportGenerationDone() bool {
+	return r.FailedAt != nil || r.CompletedAt != nil
+}
+
+func (r *Report) Status() string {
+	switch {
+	case r.StartedAt == nil:
+		return "requested"
+	case r.StartedAt != nil && !r.IsReportGenerationDone():
+		return "processing"
+	case r.CompletedAt != nil:
+		return "completed"
+	case r.FailedAt != nil:
+		return "failed"
+	}
+	return "unknown"
 }
 
 // NewReportStore initializes a new ReportStore with the given database connection.
@@ -93,29 +110,23 @@ func (s *ReportStore) Create(ctx context.Context, userId uuid.UUID, reportType s
 // - A pointer to the updated Report instance.
 // - An error if the operation fails.
 func (s *ReportStore) Update(ctx context.Context, report *Report) (*Report, error) {
-	query := `
-        UPDATE reports
+	const query = `UPDATE reports
         SET output_file_path = $1, download_url = $2, download_url_expires_at = $3,
-            error_message = $4, started_at = $5, completed_at = $6
-        WHERE id = $7 AND user_id = $8
+            error_message = $4, started_at = $5, completed_at = $6, failed_at = $7
+        WHERE id = $8 AND user_id = $9
         RETURNING id, user_id, report_type, output_file_path, download_url, 
                   download_url_expires_at, error_message, started_at, completed_at, 
-                  created_at
+                  created_at, failed_at
     `
-	row := s.db.QueryRowContext(ctx, query,
-		report.OutputFilePath, report.DownloadUrl, report.DownloadUrlExpiresAt,
-		report.ErrorMessage, report.StartedAt, report.CompletedAt,
-		report.Id, report.UserId,
-	)
 	var updatedReport Report
-	err := row.Scan(&updatedReport.Id, &updatedReport.UserId, &updatedReport.ReportType,
-		&updatedReport.OutputFilePath, &updatedReport.DownloadUrl, &updatedReport.DownloadUrlExpiresAt,
-		&updatedReport.ErrorMessage, &updatedReport.StartedAt, &updatedReport.CompletedAt,
-		&updatedReport.CreatedAt)
-	if err != nil {
+	if err := s.db.GetContext(ctx, &updatedReport, query,
+		report.OutputFilePath, report.DownloadUrl, report.DownloadUrlExpiresAt,
+		report.ErrorMessage, report.StartedAt, report.CompletedAt, report.FailedAt,
+		report.Id, report.UserId,
+	); err != nil {
 		return nil, fmt.Errorf("failed to update report %s for user %s: %w", report.Id, report.UserId, err)
 	}
-	return &updatedReport, nil
+	return report, nil
 }
 
 // GetByPrimaryKey retrieves a report from the database using its unique primary key.
@@ -128,11 +139,23 @@ func (s *ReportStore) Update(ctx context.Context, report *Report) (*Report, erro
 // Returns:
 // - A pointer to the retrieved Report instance.
 // - An error if the operation fails or the report is not found.
-func (s *ReportStore) GetByPrimaryKey(ctx context.Context, userId uuid.UUID, id uuid.UUID) (*Report, error) {
+/*func (s *ReportStore) GetByPrimaryKey(ctx context.Context, userId uuid.UUID, id uuid.UUID) (*Report, error) {
 	const query = `SELECT * FROM reports WHERE user_id = $1 AND id = $2;`
 	var report Report
 	if err := s.db.GetContext(ctx, &report, query, userId, id); err != nil {
 		return nil, fmt.Errorf("failed to retrieve report with id %s for user %s: %w", id, userId, err)
+	}
+	return &report, nil
+}
+*/
+func (s *ReportStore) GetByPrimaryKey(ctx context.Context, userId uuid.UUID, id uuid.UUID) (*Report, error) {
+	const query = `SELECT * FROM reports WHERE user_id = $1 AND id = $2;`
+	var report Report
+	if err := s.db.GetContext(ctx, &report, query, userId, id); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // return nil if no rows are found
+		}
+		return nil, err
 	}
 	return &report, nil
 }
